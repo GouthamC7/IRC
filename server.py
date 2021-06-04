@@ -83,7 +83,8 @@ def join_room(nickname, room_name):
             room.nicknames.append(nickname)
             user.currentRoom = room_name
             user.rooms.append(room_name)
-            name.send('Joined room'.encode('ascii'))
+            broadcast(f'{nickname} joined the room', room_name)
+            #name.send('Joined room'.encode('ascii'))
 
 def switch_room(nickname, roomname):
     user = users_room[nickname]
@@ -111,7 +112,7 @@ def leave_room(nickname):
         rooms[roomname].members.remove(name)
         rooms[roomname].nicknames.remove(nickname)
         broadcast(f'{nickname} left the room', roomname)
-        name.send('Good Bye'.encode('ascii'))
+        name.send('You left the room'.encode('ascii'))
 
 def personalMessage(message):
     args = message.split(" ")
@@ -131,6 +132,7 @@ def remove_client(nickname):
     for room in user.rooms:
         room.members.remove(client)
         room.nicknames.remove(nickname)
+        broadcast(f'{nickname} left the room', room)
 
 def handle(client):
     while True:
@@ -165,10 +167,20 @@ def handle(client):
             #broadcast(message)
         except:
             index = clients.index(client)
+
             clients.remove(client)
             client.close()
             nickname = nicknames[index]
-            remove_client(nickname)
+            print(f'{nickname} left')
+            user = users_room[nickname]
+            if user.currentRoom != '':
+                roomname = user.currentRoom
+                user.currentRoom = ''
+                user.rooms.remove(roomname)
+                rooms[roomname].members.remove(name)
+                rooms[roomname].nicknames.remove(nickname)
+                broadcast(f'{nickname} left the room', roomname)
+            #remove_client(nickname)
             #broadcast(f'{nickname} left the room'.encode('ascii'))
             nicknames.remove(nickname)
             break

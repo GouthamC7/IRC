@@ -3,7 +3,7 @@ import socket
 import sys
 
 nickname = input("Enter your name: ")
-
+threads = []
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(('127.0.0.1', 55555))
 
@@ -15,21 +15,25 @@ def receive():
                 client.send(nickname.encode('ascii'))
             elif message == 'QUIT':
                 print("Have a great day")
-                break
+                sys.exit(0)
             else:
                 print(message)
-        except:
-            print('An error occured')
+        except Exception as e:
+            print('Server is down, Please try again later')
             client.close()
-            break
+            sys.exit(2)
 
 def write():
     while True:
         message = '{} {}'.format(nickname, input(''))
-        client.send(message.encode('ascii'))
+        try:
+            client.send(message.encode('ascii'))
+        except:
+            sys.exit(0)
 
 receive_thread = threading.Thread(target=receive)
 receive_thread.start()
-
+threads.append(receive_thread)
 write_thread = threading.Thread(target=write)
 write_thread.start()
+threads.append(write_thread)

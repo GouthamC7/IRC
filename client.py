@@ -15,7 +15,7 @@ def receive():
                 client.send(nickname.encode('ascii'))
             elif message == 'QUIT':
                 print("Have a great day")
-                sys.exit(0)
+                sys.exit(2)
             else:
                 print(message)
         except Exception as e:

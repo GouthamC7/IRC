@@ -37,15 +37,15 @@ class Room:
         self.nicknames = []
         self.name = name
 
-    def welcome_message(self):
+def welcome_message(self):
         msg = self.name + " welcomes: "
 
 def broadcast(message, roomname):
     for client in rooms[roomname].members:
-        client.send(message.encode('ascii'))
+        msg = '['+roomname+'] '+message
+        client.send(msg.encode('ascii'))
 
 def list_all_rooms(nickname):
-    print('inside listing all rooms')
     name = users[nickname]
     print(len(rooms))
     if len(rooms) == 0:
@@ -57,9 +57,9 @@ def list_all_rooms(nickname):
             reply += '\n-----------\n' + rooms[room].name + '\n------------\n'
             print(rooms[room].nicknames)
 
-            if nickname not in rooms[room].nicknames:
-                for member in rooms[room].nicknames:
-                    reply += member + '\n'
+            #if nickname not in rooms[room].nicknames:
+            for member in rooms[room].nicknames:
+                reply += member + '\n'
         name.send(f'{reply}'.encode('ascii'))
 
 def join_room(nickname, room_name):
@@ -72,7 +72,7 @@ def join_room(nickname, room_name):
         room.nicknames.append(nickname)
 
         user.currentRoom = room_name
-        user.rooms.append(room_name)
+        user.rooms.append(room)
         name.send(f'{room_name} created'.encode('ascii'))
     else:
         room = rooms[room_name]
@@ -82,19 +82,17 @@ def join_room(nickname, room_name):
             room.members.append(name)
             room.nicknames.append(nickname)
             user.currentRoom = room_name
-            user.rooms.append(room_name)
+            user.rooms.append(room)
             broadcast(f'{nickname} joined the room', room_name)
             #name.send('Joined room'.encode('ascii'))
 
 def switch_room(nickname, roomname):
     user = users_room[nickname]
     name = users[nickname]
-    print(roomname)
-    print(user.currentRoom)
-    print(roomname == user.currentRoom)
+    room = rooms[roomname]
     if roomname == user.currentRoom:
         name.send('You are already in the room'.encode('ascii'))
-    elif roomname not in user.rooms:
+    elif room not in user.rooms:
         name.send('Switch not available, You are not part of the room'.encode('ascii'))
     else:
         user.currentRoom = roomname
@@ -107,8 +105,9 @@ def leave_room(nickname):
         name.send('You are not part of any room'.encode('ascii'))
     else:
         roomname = user.currentRoom
+        room = rooms[roomname]
         user.currentRoom = ''
-        user.rooms.remove(roomname)
+        user.rooms.remove(room)
         rooms[roomname].members.remove(name)
         rooms[roomname].nicknames.remove(nickname)
         broadcast(f'{nickname} left the room', roomname)
@@ -127,19 +126,26 @@ def personalMessage(message):
         sender.send(f'[personal message] {args[0]}: {msg}'.encode('ascii'))
 
 def remove_client(nickname):
+    nicknames.remove(nickname)
     client = users[nickname]
     user = users_room[nickname]
+    user.currentRoom = ''
     for room in user.rooms:
+        print(room.name)
         room.members.remove(client)
+        print(room.members)
         room.nicknames.remove(nickname)
-        broadcast(f'{nickname} left the room', room)
+        print(room.nicknames)
+        broadcast(f'{nickname} left the room', room.name)
 
 def handle(client):
+    nick=''
     while True:
         try:
             message = client.recv(1024).decode('ascii')
             args = message.split(" ")
             name = users[args[0]]
+            nick = args[0]
             if '<help>' in message:
                 name.send(instructions.encode('ascii'))
             elif '<list>' in message:
@@ -153,7 +159,6 @@ def handle(client):
             elif '<personal>' in message:
                 personalMessage(message)
             elif '<quit>' in message:
-                print("quitting")
                 remove_client(args[0])
                 name.send('QUIT'.encode('ascii'))
                 name.close()
@@ -165,31 +170,36 @@ def handle(client):
                     broadcast(f'{args[0]}: {msg}',users_room[args[0]].currentRoom)
 
             #broadcast(message)
-        except:
+        except Exception as e:
+            print("exception occured ", e)
             index = clients.index(client)
-
             clients.remove(client)
             client.close()
-            nickname = nicknames[index]
+            '''nickname = nicknames[index]
             print(f'{nickname} left')
-            user = users_room[nickname]
-            if user.currentRoom != '':
+            user = users_room[nickname]'''
+            '''if user.currentRoom != '':
                 roomname = user.currentRoom
                 user.currentRoom = ''
-                user.rooms.remove(roomname)
+                #user.rooms.remove(roomname)
                 rooms[roomname].members.remove(name)
                 rooms[roomname].nicknames.remove(nickname)
-                broadcast(f'{nickname} left the room', roomname)
-            #remove_client(nickname)
+                broadcast(f'{nickname} left the room', roomname)'''
+            print(f'nick name is =============== {nick}')
+            if nick in nicknames:
+                remove_client(nick)
+            if nick in nicknames:
+                nicknames.remove(nick)
+
             #broadcast(f'{nickname} left the room'.encode('ascii'))
-            nicknames.remove(nickname)
+
             break
 
 def recieve():
     while True:
         client, address = server.accept()
         print(f'connected with {str(address)}')
-
+        print(client)
         client.send('NICK'.encode('ascii'))
         nickname = client.recv(1024).decode('ascii')
         nicknames.append(nickname)
